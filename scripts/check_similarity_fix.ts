@@ -33,7 +33,7 @@ async function run() {
         const results = await vectorStore.similaritySearch(query, 5);
         
         console.log("Results:");
-        results.forEach((r, i) => {
+        results.forEach((r: any, i: number) => {
             console.log(`[${i}] Score: ${r.similarity.toFixed(4)}`);
             console.log(`    Snippet: ${r.text.substring(0, 100).replace(/\n/g, ' ')}...`);
         });

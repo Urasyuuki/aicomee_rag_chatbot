@@ -33,7 +33,7 @@ export async function POST(req: NextRequest) {
     }
     
     // 3. RAG Retrieval (Always try to get context, useful for both unless "chat-only" mode is requested)
-    const relevantDocs = await vectorStore.similaritySearch(message, 3);
+    const relevantDocs: any[] = await vectorStore.similaritySearch(message, 3);
     let context = "";
     let sources: string[] = [];
 
@@ -91,10 +91,9 @@ export async function POST(req: NextRequest) {
         ? `You are a helpful AI assistant. 
 Use the following context to answer the user's question.
 
-IMPORTANT: If the context contains a step-by-step scenario or manual (e.g. "Step 1", "Step 2"):
-- Follow the context's instructions on how to present it (e.g. "Wait for user to say Next").
-- Do NOT output the whole manual at once.
-- Present ONLY the current step requested.
+IMPORTANT: 
+- If the user is proceeding through a manual (e.g. saying "Next", "Start"), present ONLY the current/next step. Do NOT output the whole manual at once.
+- If the user asks a SPECIFIC QUESTION (e.g. "What about breaks?", "Tell me about X"), answer it using ANY relevant context provided, even if it is not part of the current step.
 
 Context:
 ${context}` 

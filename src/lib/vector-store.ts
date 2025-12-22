@@ -65,7 +65,7 @@ export class SupabaseVectorStoreService {
     const { data: documents, error } = await supabase
       .rpc('match_documents', {
         query_embedding: queryEmbedding,
-        match_threshold: 0.5, // Minimum similarity threshold
+        match_threshold: 0.4, // Lowered to ensure broader retrieval
         match_count: k,
       });
 
@@ -96,6 +96,26 @@ export class SupabaseVectorStoreService {
     if (error) {
         console.error("Error deleting documents:", error);
     }
+  }
+
+  async getDocumentsBySource(source: string) {
+    if (!supabase) return [];
+
+    const { data: documents, error } = await supabase
+      .from('document_chunks')
+      .select('*')
+      .filter('metadata->>source', 'eq', source);
+
+    if (error) {
+      console.error("Error getting documents by source:", error);
+      return [];
+    }
+
+    return documents.map((doc: any) => ({
+      id: doc.id,
+      text: doc.content,
+      metadata: doc.metadata,
+    }));
   }
 }
 
