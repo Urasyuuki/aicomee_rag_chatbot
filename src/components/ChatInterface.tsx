@@ -15,15 +15,18 @@ interface Message {
   role: "user" | "model";
   content: string;
   sources?: string[];
+  modelUsed?: string;
 }
 
 interface ChatInterfaceProps {
   messages: Message[];
   loading: boolean;
   onSendMessage: (message: string) => void;
+  selectedModel: "cloud" | "local";
+  onModelChange: (model: "cloud" | "local") => void;
 }
 
-export default function ChatInterface({ messages, loading, onSendMessage }: ChatInterfaceProps) {
+export default function ChatInterface({ messages, loading, onSendMessage, selectedModel, onModelChange }: ChatInterfaceProps) {
   const [input, setInput] = useState("");
   const [selectedSource, setSelectedSource] = useState<string | null>(null);
   const [sourceContent, setSourceContent] = useState<string | null>(null);
@@ -52,6 +55,7 @@ export default function ChatInterface({ messages, loading, onSendMessage }: Chat
           setLoadingSource(false);
       }
   };
+  
 
   const scrollToBottom = () => {
     bottomRef.current?.scrollIntoView({ behavior: "smooth" });
@@ -90,6 +94,30 @@ export default function ChatInterface({ messages, loading, onSendMessage }: Chat
                             <h2 className="text-2xl font-bold text-gray-900">Aicomee.chat へようこそ！</h2>
                             <p className="text-gray-500 mt-2">質問の例を選ぶか、下の入力欄から自由に聞いてください。</p>
                         </div>
+                        
+                        {/* Model Selector (Visible on Empty State) */}
+                        <div className="flex justify-center mt-4">
+                            <div className="bg-gray-100 p-1 rounded-lg flex items-center text-sm font-medium">
+                                <button
+                                    onClick={() => onModelChange("cloud")}
+                                    className={cn(
+                                        "px-4 py-1.5 rounded-md transition-all flex items-center gap-2",
+                                        selectedModel === "cloud" ? "bg-white text-gray-900 shadow-sm" : "text-gray-500 hover:text-gray-900"
+                                    )}
+                                >
+                                    <span>☁️ Cloud</span>
+                                </button>
+                                <button
+                                    onClick={() => onModelChange("local")}
+                                    className={cn(
+                                        "px-4 py-1.5 rounded-md transition-all flex items-center gap-2",
+                                        selectedModel === "local" ? "bg-white text-purple-700 shadow-sm" : "text-gray-500 hover:text-gray-900"
+                                    )}
+                                >
+                                    <span>🏠 Local</span>
+                                </button>
+                            </div>
+                        </div>
                     </div>
 
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-4 w-full max-w-2xl px-4">
@@ -106,7 +134,11 @@ export default function ChatInterface({ messages, loading, onSendMessage }: Chat
                                 ].map((q, i) => (
                                     <button 
                                         key={i}
-                                        onClick={() => onSendMessage(q)}
+                                        onClick={() => {
+                                            setInput(q);
+                                            // Optional: Focus the input
+                                            // document.querySelector('input')?.focus(); 
+                                        }}
                                         className="text-left p-3 rounded-xl bg-white border border-gray-200 hover:border-primary/50 hover:bg-primary/5 hover:text-primary transition-all text-sm font-medium text-gray-700 shadow-sm"
                                     >
                                         {q}
@@ -128,7 +160,7 @@ export default function ChatInterface({ messages, loading, onSendMessage }: Chat
                                 ].map((q, i) => (
                                     <button 
                                         key={i}
-                                        onClick={() => onSendMessage(q)}
+                                        onClick={() => setInput(q)}
                                         className="text-left p-3 rounded-xl bg-white border border-gray-200 hover:border-blue-400/50 hover:bg-blue-50 hover:text-blue-600 transition-all text-sm font-medium text-gray-700 shadow-sm"
                                     >
                                         {q}
@@ -165,6 +197,17 @@ export default function ChatInterface({ messages, loading, onSendMessage }: Chat
                                  {msg.role === "model" ? "AI アシスタント" : "あなた"}
                              </span>
                              {msg.role === "model" && <span className="text-[10px] px-1.5 py-0.5 rounded-full bg-blue-50 text-blue-600 font-medium border border-blue-100">BOT</span>}
+                             {/* Model Badge */}
+                             {msg.role === "model" && msg.modelUsed && (
+                                <span className={cn(
+                                    "text-[10px] px-1.5 py-0.5 rounded-full font-medium border flex items-center gap-1",
+                                    msg.modelUsed.includes("ollama") 
+                                        ? "bg-purple-50 text-purple-700 border-purple-200" 
+                                        : "bg-green-50 text-green-700 border-green-200"
+                                )}>
+                                    {msg.modelUsed.includes("ollama") ? "🏠 Local" : "☁️ Cloud"}
+                                </span>
+                             )}
                         </div>
 
                         <div className="text-[15px] leading-7 text-gray-700">
@@ -251,9 +294,25 @@ export default function ChatInterface({ messages, loading, onSendMessage }: Chat
                     value={input}
                     onChange={(e) => setInput(e.target.value)}
                     onKeyDown={handleKeyDown}
-                    placeholder="ここにメッセージを入力..."
+                    placeholder={`[${selectedModel === "cloud" ? "Cloud" : "Local"}] メッセージを入力...`}
                     className="flex-1 bg-transparent border-none outline-none text-gray-700 placeholder:text-gray-400 font-medium h-12"
                 />
+                
+                {/* Mini Selector */}
+                 <div className="flex mr-2">
+                    <button
+                        onClick={() => onModelChange(selectedModel === "cloud" ? "local" : "cloud")}
+                        className={cn(
+                            "text-xs px-2 py-1 rounded-md border transition-colors flex items-center gap-1",
+                            selectedModel === "local" 
+                                ? "bg-purple-50 text-purple-700 border-purple-200 hover:bg-purple-100" 
+                                : "bg-gray-50 text-gray-500 border-gray-200 hover:bg-gray-100"
+                        )}
+                        title="Click to toggle Model"
+                    >
+                       {selectedModel === "local" ? "🏠 Local" : "☁️ Cloud"}
+                    </button>
+                 </div>
                 
                 <Button 
                     onClick={handleSend}
@@ -268,7 +327,21 @@ export default function ChatInterface({ messages, loading, onSendMessage }: Chat
                 </Button>
              </div>
              
-             <div className="text-center text-[10px] text-gray-300 mt-3 font-medium tracking-wide pb-1">
+             <div className="flex justify-center items-center gap-6 mt-4 pb-2">
+                 <div className="flex items-center gap-2 text-xs text-gray-500 font-medium bg-gray-50/80 px-3 py-1.5 rounded-lg border border-gray-200/50">
+                     <span className="bg-white border-b-2 border-gray-200 border-x border-t rounded-md px-2 py-0.5 min-w-[44px] text-center font-semibold text-gray-700 shadow-sm">Enter</span>
+                     <span>で送信</span>
+                 </div>
+                 <div className="flex items-center gap-2 text-xs text-gray-500 font-medium bg-gray-50/80 px-3 py-1.5 rounded-lg border border-gray-200/50">
+                     <div className="flex gap-1 items-center">
+                        <span className="bg-white border-b-2 border-gray-200 border-x border-t rounded-md px-2 py-0.5 min-w-[40px] text-center font-semibold text-gray-700 shadow-sm">Shift</span>
+                        <span className="text-gray-400">+</span>
+                        <span className="bg-white border-b-2 border-gray-200 border-x border-t rounded-md px-2 py-0.5 min-w-[44px] text-center font-semibold text-gray-700 shadow-sm">Enter</span>
+                     </div>
+                     <span>で改行</span>
+                 </div>
+             </div>
+             <div className="text-center text-[11px] text-gray-400 mt-1 font-medium tracking-wide">
                  AIは間違いを犯す可能性があります。重要な情報は必ず確認してください。
              </div>
         </div>

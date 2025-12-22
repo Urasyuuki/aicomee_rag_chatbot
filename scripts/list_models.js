@@ -1,3 +1,4 @@
+
 const { GoogleGenerativeAI } = require("@google/generative-ai");
 const fs = require('fs');
 const path = require('path');
@@ -18,30 +19,27 @@ async function listModels() {
     console.log("Listing models...");
     const apiKey = getEnvKey();
     if (!apiKey) {
-        console.error("No API Key");
+        console.error("No API Key found.");
         return;
     }
 
     try {
-        const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models?key=${apiKey}`);
-        const data = await response.json();
+        const genAI = new GoogleGenerativeAI(apiKey);
+        // Note: listModels is on the genAI instance or model manager?
+        // Actually it's usually via a separate admin client or just getting a model doesn't list them.
+        // Wait, the Google Generative AI JS SDK might not have a simple listModels method exposed on the main entry easily in older versions?
+        // Let's check docs or try common pattern.
+        // In newer SDK: genAI.getGenerativeModel is the main way.
+        // Actually, there isn't a direct listModels on GoogleGenerativeAI instance in the simplified SDK.
+        // We might need to try a known working model like 'gemini-pro'.
         
-        if (data.error) {
-            console.error("API Error:", data.error);
-            return;
-        }
-
-        if (data.models) {
-            console.log("Found " + data.models.length + " models.");
-            data.models.forEach(m => {
-                 console.log(`MODEL: ${m.name}`);
-            });
-        } else {
-            console.log("No models found or unexpected format:", data);
-        }
-
+        console.log("Trying gemini-pro...");
+        const model = genAI.getGenerativeModel({ model: "gemini-pro" });
+        const result = await model.generateContent("Hello");
+        console.log("gemini-pro worked:", await result.response.text());
+        
     } catch (e) {
-        console.error("Fetch failed:", e);
+        console.error("Error:", e);
     }
 }
 

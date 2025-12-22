@@ -8,6 +8,8 @@ import KnowledgeBase from "@/components/KnowledgeBase";
 interface Message {
   role: "user" | "model";
   content: string;
+  sources?: string[];
+  modelUsed?: string;
 }
 
 interface Conversation {
@@ -23,6 +25,7 @@ export default function Home() {
   const [activeId, setActiveId] = useState("1");
   const [viewMode, setViewMode] = useState<"chat" | "knowledge">("chat");
   const [loading, setLoading] = useState(false);
+  const [selectedModel, setSelectedModel] = useState<"cloud" | "local">("local"); // Default to Local
 
   // Check if we are already in an empty chat to avoid creating duplicates
   const activeConversation = conversations.find((c) => c.id === activeId) || conversations[0];
@@ -130,7 +133,11 @@ export default function Home() {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         // Pass conversationId to backend for persistence
-        body: JSON.stringify({ message: content, conversationId: activeId }),
+        body: JSON.stringify({ 
+            message: content, 
+            conversationId: activeId,
+            model: selectedModel // Send selected model
+        }),
       });
 
       if (!res.ok) {
@@ -138,16 +145,17 @@ export default function Home() {
         throw new Error(errData.error || res.statusText);
       }
 
-      // Handle Sources from Header
+      // Handle Sources & Model from Header
       const sourcesHeader = res.headers.get("X-Sources");
       const sources = sourcesHeader ? JSON.parse(sourcesHeader) : [];
+      const modelUsed = res.headers.get("X-Model-Used") || "unknown";
 
       // ... existing stream logic ...
-      // Initialize empty bot message
+      // Initialize empty bot message with metadata
       setConversations((prev) =>
         prev.map((c) =>
           c.id === activeId
-            ? { ...c, messages: [...c.messages, { role: "model", content: "" }] }
+            ? { ...c, messages: [...c.messages, { role: "model", content: "", sources, modelUsed }] }
             : c
         )
       );
@@ -182,11 +190,28 @@ export default function Home() {
     } catch (err: any) {
       console.error(err);
       setConversations((prev) =>
-        prev.map((c) =>
-          c.id === activeId
-            ? { ...c, messages: [...c.messages, { role: "model", content: `Error: ${err.message || "Could not reach server."}` }] }
-            : c
-        )
+        prev.map((c) => {
+          if (c.id !== activeId) return c;
+          
+          const lastMsg = c.messages[c.messages.length - 1];
+          // If the last message is a partial model response, invoke error state on it or append error
+          if (lastMsg && lastMsg.role === 'model') {
+             return {
+                 ...c,
+                 messages: c.messages.map((m, i) => 
+                    i === c.messages.length - 1 
+                    ? { ...m, content: m.content + `\n\n[System Error: ${err.message}]` } 
+                    : m
+                 )
+             };
+          }
+          
+          // Otherwise (failed before starting response), add new error message
+          return { 
+              ...c, 
+              messages: [...c.messages, { role: "model", content: `Error: ${err.message || "Could not reach server."}` }] 
+          };
+        })
       );
     } finally {
       setLoading(false);
@@ -231,6 +256,8 @@ export default function Home() {
                 messages={activeConversation.messages}
                 loading={loading}
                 onSendMessage={handleSendMessage}
+                selectedModel={selectedModel}
+                onModelChange={setSelectedModel}
             />
         ) : (
             <KnowledgeBase />
