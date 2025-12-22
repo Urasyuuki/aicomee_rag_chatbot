@@ -51,7 +51,7 @@ export async function POST(req: NextRequest) {
             take: 20 // Increase context size
         });
         // Reverse to chronological order (Oldest -> Newest)
-        history = prevMessages.reverse().map(m => ({ 
+        history = prevMessages.reverse().map((m: any) => ({ 
             role: m.role as "user" | "model", 
             content: m.content 
         }));
