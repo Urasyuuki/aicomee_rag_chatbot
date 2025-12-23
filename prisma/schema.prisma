@@ -13,6 +13,9 @@ model Conversation {
   messages  Message[]
   createdAt DateTime  @default(now())
   updatedAt DateTime  @updatedAt
+  userId    String    @default("guest") // Temporary default for migration, should be required later
+
+  @@index([userId])
 }
 
 model Message {

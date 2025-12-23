@@ -9,14 +9,7 @@ import { cn } from "@/lib/utils";
 import { Textarea } from "@/components/ui/textarea";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-
-
-interface Message {
-  role: "user" | "model";
-  content: string;
-  sources?: string[];
-  modelUsed?: string;
-}
+import { Message } from "@/types";
 
 interface ChatInterfaceProps {
   messages: Message[];

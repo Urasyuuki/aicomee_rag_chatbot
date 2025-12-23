@@ -20,8 +20,10 @@ import { cn } from "@/lib/utils";
 import { useTheme } from "next-themes";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogTrigger } from "@/components/ui/dialog";
 
+import { Message } from "@/types";
+
 interface SidebarProps {
-    conversations: { id: string; title: string; messages: any[] }[]; // Update to include messages for filtering
+    conversations: { id: string; title: string; messages: Message[] }[]; // Update to include messages for filtering
     activeId: string;
     onSelectConversation: (id: string) => void;
     onNewChat: () => void;
@@ -39,8 +41,10 @@ export default function Sidebar({
     onDeleteConversation,
     onRenameConversation,
     onOpenKnowledgeBase,
-    onClearConversations
-}: SidebarProps) {
+    onClearConversations,
+    userEmail = "guest@example.com",
+    onSignOut
+}: SidebarProps & { userEmail?: string; onSignOut?: () => void }) {
   const [editingId, setEditingId] = useState<string | null>(null);
   const [editTitle, setEditTitle] = useState("");
 
@@ -178,15 +182,28 @@ export default function Sidebar({
                 </Button>
               </DialogTrigger>
               
-              <div className="flex items-center gap-3 px-4 py-2 rounded-2xl border border-gray-100 bg-white shadow-sm mt-2 cursor-pointer hover:shadow-md transition-shadow">
-                  <Avatar className="h-8 w-8">
-                      <AvatarImage src="/placeholder-user.jpg" />
-                      <AvatarFallback className="bg-orange-100 text-orange-600 text-xs">U</AvatarFallback>
-                  </Avatar>
-                  <div className="flex-1 overflow-hidden">
-                      <div className="text-sm font-semibold truncate">Andrew Neilson</div>
-                      <div className="text-xs text-gray-400">Pro Account</div>
-                  </div>
+              <div className="group relative">
+                <div className="flex items-center gap-3 px-4 py-2 rounded-2xl border border-gray-100 bg-white shadow-sm mt-2 hover:shadow-md transition-shadow">
+                    <Avatar className="h-8 w-8">
+                        {/* Use email initial */}
+                        <AvatarFallback className="bg-orange-100 text-orange-600 text-xs">
+                          {userEmail?.charAt(0).toUpperCase() || "U"}
+                        </AvatarFallback>
+                    </Avatar>
+                    <div className="flex-1 overflow-hidden">
+                        <div className="text-sm font-semibold truncate" title={userEmail}>{userEmail}</div>
+                        <div className="text-xs text-gray-400">User</div>
+                    </div>
+                </div>
+                
+                {onSignOut && (
+                  <button 
+                    onClick={onSignOut}
+                    className="absolute right-2 top-1/2 -translate-y-1/2 opacity-0 group-hover:opacity-100 transition-opacity bg-red-50 text-red-600 text-xs px-2 py-1 rounded-full shadow-sm hover:bg-red-100"
+                  >
+                    Logout
+                  </button>
+                )}
               </div>
           </div>
         </div>
@@ -203,6 +220,11 @@ export default function Sidebar({
           <div className="space-y-2">
             <h3 className="text-sm font-medium">テーマ</h3>
             <ThemeSelector />
+          </div>
+          <div className="pt-4 border-t">
+              <Button variant="destructive" onClick={onSignOut} className="w-full">
+                  ログアウト
+              </Button>
           </div>
         </div>
       </DialogContent>

@@ -4,19 +4,10 @@ import { useState, useEffect } from "react";
 import Sidebar from "@/components/Sidebar";
 import ChatInterface from "@/components/ChatInterface";
 import KnowledgeBase from "@/components/KnowledgeBase";
-
-interface Message {
-  role: "user" | "model";
-  content: string;
-  sources?: string[];
-  modelUsed?: string;
-}
-
-interface Conversation {
-  id: string;
-  title: string;
-  messages: Message[];
-}
+import { toast } from "sonner";
+import { createClient } from "@/lib/supabase/client";
+import { useRouter } from "next/navigation";
+import { Message, Conversation } from "@/types";
 
 export default function Home() {
   const [conversations, setConversations] = useState<Conversation[]>([
@@ -26,25 +17,56 @@ export default function Home() {
   const [viewMode, setViewMode] = useState<"chat" | "knowledge">("chat");
   const [loading, setLoading] = useState(false);
   const [selectedModel, setSelectedModel] = useState<"cloud" | "local">("local"); // Default to Local
+  const [userEmail, setUserEmail] = useState<string>("");
+  
+  const router = useRouter();
+  const supabase = createClient();
 
   // Check if we are already in an empty chat to avoid creating duplicates
   const activeConversation = conversations.find((c) => c.id === activeId) || conversations[0];
 
   useEffect(() => {
+    // Fetch User
+    const getUser = async () => {
+        const { data: { user } } = await supabase.auth.getUser();
+        if (user) {
+            setUserEmail(user.email || "");
+        }
+    };
+    getUser();
+
     // Fetch conversations on load
     fetch("/api/conversations")
-      .then((res) => res.json())
+      .then((res) => {
+          if (res.status === 401) {
+              // Middleware should handle this, but just in case
+              return null; 
+          }
+          return res.json();
+      })
       .then((data) => {
+        if (!data) return; 
         if (data.conversations && data.conversations.length > 0) {
           setConversations(data.conversations);
           // Set active to the most recent one
           setActiveId(data.conversations[0].id);
         } else {
-            // No conversations, keep default "New Chat"
+            // No conversations, keep default "New Chat" with generated ID?
+            // Actually, if fresh login, conversation list is empty.
+            // We should ensure we have at least one empty chat.
+             const newId = crypto.randomUUID();
+             setConversations([{ id: newId, title: "New Chat", messages: [] }]);
+             setActiveId(newId);
         }
       })
       .catch((err) => console.error("Failed to load history", err));
   }, []);
+
+  const handleSignOut = async () => {
+      await supabase.auth.signOut();
+      router.refresh();
+      router.push("/login");
+  };
 
   const handleNewChat = () => {
     setViewMode("chat");
@@ -141,6 +163,11 @@ export default function Home() {
       });
 
       if (!res.ok) {
+        if (res.status === 401) {
+            toast.error("Session expired. Please sign in again.");
+            router.push("/login"); // Redirect
+            return;
+        }
         const errData = await res.json().catch(() => ({}));
         throw new Error(errData.error || res.statusText);
       }
@@ -187,8 +214,9 @@ export default function Home() {
         );
       }
 
-    } catch (err: any) {
+    } catch (err) {
       console.error(err);
+      const error = err as any;
       setConversations((prev) =>
         prev.map((c) => {
           if (c.id !== activeId) return c;
@@ -200,7 +228,7 @@ export default function Home() {
                  ...c,
                  messages: c.messages.map((m, i) => 
                     i === c.messages.length - 1 
-                    ? { ...m, content: m.content + `\n\n[System Error: ${err.message}]` } 
+                    ? { ...m, content: m.content + `\n\n[System Error: ${error.message}]` } 
                     : m
                  )
              };
@@ -209,7 +237,7 @@ export default function Home() {
           // Otherwise (failed before starting response), add new error message
           return { 
               ...c, 
-              messages: [...c.messages, { role: "model", content: `Error: ${err.message || "Could not reach server."}` }] 
+              messages: [...c.messages, { role: "model", content: `Error: ${error.message || "Could not reach server."}` }] 
           };
         })
       );
@@ -249,6 +277,8 @@ export default function Home() {
           onRenameConversation={handleRenameConversation}
           onOpenKnowledgeBase={handleOpenKnowledgeBase}
           onClearConversations={handleClearConversations}
+          userEmail={userEmail}
+          onSignOut={handleSignOut}
       />
       <div className="flex-1 h-full relative">
         {viewMode === "chat" ? (

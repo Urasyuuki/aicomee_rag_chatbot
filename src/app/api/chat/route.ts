@@ -1,26 +1,51 @@
 import { NextRequest, NextResponse } from "next/server";
+import { Message as PrismaMessage } from "@prisma/client";
 import { getModel } from "@/lib/gemini";
 import { vectorStore } from "@/lib/vector-store";
 import { prisma } from "@/lib/prisma";
 import { streamOllamaResponse } from "@/lib/ollama";
+import { createClient } from "@/lib/supabase/server";
 
 export async function POST(req: NextRequest) {
   console.log("Chat API Hit");
   try {
+    const supabase = await createClient();
+    const { data: { user } } = await supabase.auth.getUser();
+
+    if (!user) {
+         return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    }
+
     const { message, conversationId, model = "auto" } = await req.json(); // Default to auto/cloud if not specified
     console.log(`Received: "${message.slice(0, 20)}...", ID: ${conversationId}, Model: ${model}`);
 
-    // 1. Ensure Conversation Exists
+    // 1. Ensure Conversation Exists & Ownership
     if (conversationId) {
-        await prisma.conversation.upsert({
-            where: { id: conversationId },
-            update: { updatedAt: new Date() },
-            create: {
-                id: conversationId,
-                title: message.slice(0, 30) || "New Conversation",
-                updatedAt: new Date()
-            }
+        // Check if it exists
+        const existing = await prisma.conversation.findUnique({
+            where: { id: conversationId }
         });
+
+        if (existing) {
+            if (existing.userId !== user.id) {
+                return NextResponse.json({ error: "Unauthorized access to conversation" }, { status: 403 });
+            }
+            // Update timestamp
+            await prisma.conversation.update({
+                where: { id: conversationId },
+                data: { updatedAt: new Date() }
+            });
+        } else {
+            // Create new
+             await prisma.conversation.create({
+                data: {
+                    id: conversationId,
+                    title: message.slice(0, 30) || "New Conversation",
+                    updatedAt: new Date(),
+                    userId: user.id
+                }
+            });
+        }
 
         // 2. Save User Message immediately
         await prisma.message.create({
@@ -51,7 +76,7 @@ export async function POST(req: NextRequest) {
             take: 20 // Increase context size
         });
         // Reverse to chronological order (Oldest -> Newest)
-        history = prevMessages.reverse().map((m: any) => ({ 
+        history = prevMessages.reverse().map((m: PrismaMessage) => ({ 
             role: m.role as "user" | "model", 
             content: m.content 
         }));
@@ -220,11 +245,12 @@ ${context}`
         },
     });
 
-  } catch (error: any) {
+  } catch (error) {
     console.error("Chat API Error:", error);
+    const err = error as any;
     
     // Check for Gemini API Rate Limit (429) or Overloaded (503)
-    if (error.status === 429 || error.status === 503 || error.response?.status === 429) {
+    if (err.status === 429 || err.status === 503 || err.response?.status === 429) {
         return NextResponse.json(
             { error: "AI Service is busy (Rate Limit). Please try again later." },
             { status: 429 }
