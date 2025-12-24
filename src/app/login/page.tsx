@@ -112,6 +112,42 @@ export default function LoginPage() {
           </Button>
         </CardFooter>
       </Card>
+
+      {/* Debug Helper */}
+      {(process.env.NODE_ENV === 'development' || !process.env.NODE_ENV) && (
+        <div className="fixed bottom-4 right-4 bg-white p-4 rounded-lg shadow-lg border text-xs space-y-2 z-50">
+            <h4 className="font-bold flex items-center gap-2">Debug Login (Bypass)</h4>
+            <Button variant="outline" size="sm" className="w-full justify-start text-xs h-7"
+                onClick={() => { 
+                    document.cookie = `local-auth-bypass=${encodeURIComponent('admin@example.com')}; path=/; max-age=3600`;
+                    toast.success('Logged in as Admin (Bypass)');
+                    router.refresh();
+                    router.push('/');
+                }}
+            >
+               Admin (admin@example.com)
+            </Button>
+            <Button variant="outline" size="sm" className="w-full justify-start text-xs h-7"
+                onClick={() => { 
+                    document.cookie = `local-auth-bypass=${encodeURIComponent('user@example.com')}; path=/; max-age=3600`;
+                    toast.success('Logged in as User (Bypass)');
+                    router.refresh();
+                    router.push('/');
+                }}
+            >
+               User (user@example.com)
+            </Button>
+            <Button variant="outline" size="sm" className="w-full justify-start text-xs h-7 text-red-500"
+                onClick={() => { 
+                    document.cookie = `local-auth-bypass=; path=/; max-age=0`;
+                    toast.success('Cleared Bypass Cookie');
+                    router.refresh();
+                }}
+            >
+               Clear Bypass
+            </Button>
+        </div>
+      )}
     </div>
   )
 }

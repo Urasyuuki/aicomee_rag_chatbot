@@ -8,6 +8,7 @@ import { toast } from "sonner";
 import { createClient } from "@/lib/supabase/client";
 import { useRouter } from "next/navigation";
 import { Message, Conversation } from "@/types";
+import { getCurrentUser } from "@/lib/auth";
 
 export default function Home() {
   const [conversations, setConversations] = useState<Conversation[]>([
@@ -31,16 +32,18 @@ export default function Home() {
   useEffect(() => {
     // Fetch User & Role
     const getUser = async () => {
-        const { data: { user } } = await supabase.auth.getUser();
-        if (user) {
-            setUserEmail(user.email || "");
-            const { data } = await supabase
-                .from('AllowedUser')
-                .select('role')
-                .eq('email', user.email)
-                .single();
-            if (data && data.role === 'ADMIN') {
+        console.log("Fetching user...");
+        const { user: currentUser, role } = await getCurrentUser(supabase);
+        console.log("getCurrentUser result:", { currentUser, role });
+        
+        if (currentUser) {
+            setUserEmail(currentUser.email || "");
+            if (role === 'ADMIN') {
+                console.log("User is ADMIN");
                 setIsAdminUser(true);
+            } else {
+                console.log("User is NOT ADMIN");
+                setIsAdminUser(false);
             }
         }
     };
@@ -285,14 +288,22 @@ export default function Home() {
       <Sidebar 
           conversations={conversations} 
           activeId={activeId} 
-          onSelectConversation={handleSelectConversation}
+          onSelectConversation={setActiveId}
           onNewChat={handleNewChat}
           onDeleteConversation={handleDeleteConversation}
           onRenameConversation={handleRenameConversation}
-          onOpenKnowledgeBase={handleOpenKnowledgeBase}
+          onOpenKnowledgeBase={() => setViewMode("knowledge")}
           onClearConversations={handleClearConversations}
           userEmail={userEmail}
-          onSignOut={handleSignOut}
+          isAdminUser={isAdminUser}
+          onSignOut={async () => {
+            console.log("Signing out...");
+            await supabase.auth.signOut();
+            // Clear bypass cookie
+            document.cookie = `local-auth-bypass=; path=/; max-age=0`;
+            router.push('/login');
+            router.refresh();
+        }}
       />
       <div className="flex-1 h-full relative">
         {viewMode === "chat" ? (

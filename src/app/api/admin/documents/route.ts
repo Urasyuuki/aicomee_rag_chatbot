@@ -1,7 +1,6 @@
-
 import { NextRequest, NextResponse } from 'next/server';
 import { createClient } from '@/lib/supabase/server';
-import { isAdmin } from '@/lib/auth';
+import { isAdmin, getCurrentUser } from '@/lib/auth';
 import { vectorStore } from '@/lib/vector-store';
 import { PrismaClient } from '@prisma/client';
 
@@ -9,7 +8,7 @@ const prisma = new PrismaClient();
 
 export async function POST(req: NextRequest) {
     const supabase = await createClient(); 
-    const { data: { user } } = await supabase.auth.getUser();
+    const { user } = await getCurrentUser(supabase);
 
     if (!user || !(await isAdmin(supabase, user.email || ''))) {
         return NextResponse.json({ error: 'Unauthorized' }, { status: 403 });
@@ -50,7 +49,7 @@ export async function POST(req: NextRequest) {
 
 export async function GET(req: NextRequest) {
     const supabase = await createClient(); 
-    const { data: { user } } = await supabase.auth.getUser();
+    const { user } = await getCurrentUser(supabase);
 
     if (!user || !(await isAdmin(supabase, user.email || ''))) {
         return NextResponse.json({ error: 'Unauthorized' }, { status: 403 });

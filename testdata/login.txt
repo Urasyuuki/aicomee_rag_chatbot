@@ -1,2 +1,5 @@
 Email: local@example.com
 Password: local123
+
+管理者: admin@example.com / local123
+一般ユーザー: user@example.com / local123

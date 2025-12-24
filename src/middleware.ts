@@ -38,17 +38,23 @@ export async function middleware(request: NextRequest) {
     }
   )
 
-  // Bypass auth in development if special cookie is set
-  if (process.env.NODE_ENV === 'development' && request.cookies.get('local-auth-bypass')) {
-    return NextResponse.next()
-  }
-
+  // 1. Try Supabase Auth
   const {
     data: { user },
   } = await supabase.auth.getUser()
 
+  let userEmail = user?.email;
+
+  // 2. Try Local Bypass (Development Only)
+  if (!userEmail && process.env.NODE_ENV === 'development') {
+      const bypassCookie = request.cookies.get('local-auth-bypass');
+      if (bypassCookie) {
+          userEmail = decodeURIComponent(bypassCookie.value);
+      }
+  }
+
   // Protected routes
-  if (!user && !request.nextUrl.pathname.startsWith('/login') && !request.nextUrl.pathname.startsWith('/auth')) {
+  if (!userEmail && !request.nextUrl.pathname.startsWith('/login') && !request.nextUrl.pathname.startsWith('/auth')) {
      // Redirect to login if not authenticated
      const loginUrl = request.nextUrl.clone()
      loginUrl.pathname = '/login'
@@ -56,7 +62,7 @@ export async function middleware(request: NextRequest) {
   }
 
   // Allow-list Check (Only for authenticated users)
-  if (user) {
+  if (userEmail) {
     // Import check function dynamically or inline logic to avoid dependency issues in Edge if complex
     // Simple direct query here to keep middleware self-contained often better, 
     // but we can try importing the helper.
@@ -66,7 +72,7 @@ export async function middleware(request: NextRequest) {
     const { data: allowedUser, error } = await supabase
         .from('AllowedUser')
         .select('role, isActive')
-        .eq('email', user.email)
+        .eq('email', userEmail)
         .single();
     
     const isAllowed = allowedUser && allowedUser.isActive;
@@ -101,7 +107,7 @@ export async function middleware(request: NextRequest) {
   }
 
   // Redirect to home if logged in and trying to access login
-  if (user && request.nextUrl.pathname.startsWith('/login')) {
+  if (userEmail && request.nextUrl.pathname.startsWith('/login')) {
       const homeUrl = request.nextUrl.clone()
       homeUrl.pathname = '/'
       return NextResponse.redirect(homeUrl)
