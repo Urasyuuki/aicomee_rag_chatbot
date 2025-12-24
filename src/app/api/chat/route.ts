@@ -78,7 +78,7 @@ export async function POST(req: NextRequest) {
     if (useRag !== false) {
         try {
             console.log("API Route: Performing RAG search...");
-            const relevantDocs: any[] = await vectorStore.similaritySearch(message, 3);
+            const relevantDocs: any[] = await vectorStore.similaritySearch(message, 10);
             
             if (relevantDocs.length > 0) {
                context = relevantDocs.map(d => d.text).join("\n\n");

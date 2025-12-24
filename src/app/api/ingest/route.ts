@@ -45,6 +45,10 @@ export async function POST(req: NextRequest) {
     // 4. Add to Vector Store
     const texts = chunks.map((d: any) => d.pageContent);
     const metadatas = chunks.map(() => ({ source: file.name }));
+
+    // NEW: Delete existing chunks for this source to ensure idempotency (Fix for "Step 3" issue regression)
+    await vectorStore.deleteDocumentsBySource(file.name);
+
     await vectorStore.addDocuments(texts, metadatas);
 
     // 5. Save to Database (Prisma)

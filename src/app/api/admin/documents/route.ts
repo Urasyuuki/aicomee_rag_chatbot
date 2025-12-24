@@ -3,6 +3,7 @@ import { createClient } from '@/lib/supabase/server';
 import { isAdmin, getCurrentUser } from '@/lib/auth';
 import { vectorStore } from '@/lib/vector-store';
 import { PrismaClient } from '@prisma/client';
+import { RecursiveCharacterTextSplitter } from "@langchain/textsplitters";
 import { WebPDFLoader } from "@langchain/community/document_loaders/web/pdf";
 
 const prisma = new PrismaClient();
@@ -46,25 +47,37 @@ export async function POST(req: NextRequest) {
 
         const title = file.name;
 
-        // 1. Create Document Record in Prisma (for metadata listing)
+        // 1. Clean up existing Document records (Idempotency)
+        const existingDocs = await prisma.document.findMany({ where: { name: title } });
+        for (const d of existingDocs) {
+             await prisma.document.delete({ where: { id: d.id } });
+        }
+
+        // 2. Create Document Record in Prisma
         const doc = await prisma.document.create({
             data: {
                 name: title,
-                source: title, // Simplified source ID
+                source: title, 
             }
         });
 
-        // 2. Chunking (Simple implementation)
-        // Split by double newline or chunks of N chars
-        const chunks = content.split(/\n\s*\n/).filter((c: string) => c.trim().length > 0);
+        // 3. Chunking (Standardized)
+        const splitter = new RecursiveCharacterTextSplitter({
+            chunkSize: 1000,
+            chunkOverlap: 200,
+        });
         
-        // 3. Add to Vector Store
-        // vectorStore.addDocuments expects list of texts and metadata
-        const metadata = chunks.map(() => ({ source: title, docId: doc.id }));
+        const splitDocs = await splitter.createDocuments([content]);
+        const texts = splitDocs.map(d => d.pageContent);
         
-        await vectorStore.addDocuments(chunks, metadata);
+        // 4. Delete old vectors (Idempotency)
+        await vectorStore.deleteDocumentsBySource(title);
         
-        return NextResponse.json({ success: true, count: chunks.length });
+        // 5. Add to Vector Store
+        const metadata = texts.map(() => ({ source: title, docId: doc.id }));
+        await vectorStore.addDocuments(texts, metadata);
+        
+        return NextResponse.json({ success: true, count: texts.length });
 
     } catch (e) {
         console.error(e);
