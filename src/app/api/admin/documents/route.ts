@@ -3,6 +3,12 @@ import { createClient } from '@/lib/supabase/server';
 import { isAdmin, getCurrentUser } from '@/lib/auth';
 import { vectorStore } from '@/lib/vector-store';
 import { PrismaClient } from '@prisma/client';
+// @ts-ignore
+import * as pdfLib from 'pdf-parse';
+
+// Handle potential default export wrapping
+// @ts-ignore
+const pdf = pdfLib.default || pdfLib;
 
 const prisma = new PrismaClient();
 
@@ -15,11 +21,29 @@ export async function POST(req: NextRequest) {
     }
 
     try {
-        const { title, content } = await req.json();
+        const formData = await req.formData();
+        const file = formData.get('file') as File;
 
-        if (!title || !content) {
-            return NextResponse.json({ error: 'Title and content are required' }, { status: 400 });
+        if (!file) {
+            return NextResponse.json({ error: 'File is required' }, { status: 400 });
         }
+
+        const buffer = Buffer.from(await file.arrayBuffer());
+        let content = '';
+
+        if (file.type === 'application/pdf') {
+            const data = await pdf(buffer);
+            content = data.text;
+        } else {
+            // Assume text/plain or markdown
+            content = buffer.toString('utf-8');
+        }
+
+        if (!content.trim()) {
+             return NextResponse.json({ error: 'No text content found in file' }, { status: 400 });
+        }
+
+        const title = file.name;
 
         // 1. Create Document Record in Prisma (for metadata listing)
         const doc = await prisma.document.create({
@@ -44,6 +68,37 @@ export async function POST(req: NextRequest) {
     } catch (e) {
         console.error(e);
         return NextResponse.json({ error: 'Failed to ingest document' }, { status: 500 });
+    }
+}
+
+export async function DELETE(req: NextRequest) {
+    const supabase = await createClient(); 
+    const { user } = await getCurrentUser(supabase);
+
+    if (!user || !(await isAdmin(supabase, user.email || ''))) {
+        return NextResponse.json({ error: 'Unauthorized' }, { status: 403 });
+    }
+
+    try {
+        const { searchParams } = new URL(req.url);
+        const id = searchParams.get('id');
+
+        if (!id) {
+            return NextResponse.json({ error: 'Document ID is required' }, { status: 400 });
+        }
+
+        // 1. Delete from Vector Store
+        await vectorStore.deleteDocumentsByDocId(id);
+
+        // 2. Delete from Prisma
+        await prisma.document.delete({
+            where: { id }
+        });
+
+        return NextResponse.json({ success: true });
+    } catch (e) {
+        console.error(e);
+        return NextResponse.json({ error: 'Failed to delete document' }, { status: 500 });
     }
 }
 

@@ -117,6 +117,20 @@ export class SupabaseVectorStoreService {
       metadata: doc.metadata,
     }));
   }
+
+  async deleteDocumentsByDocId(docId: string) {
+    if (!supabase) return;
+    
+    const { error } = await supabase
+        .from('document_chunks')
+        .delete()
+        .filter('metadata->>docId', 'eq', docId);
+
+    if (error) {
+        console.error("Error deleting documents by docId:", error);
+        throw error;
+    }
+  }
 }
 
 export const vectorStore = new SupabaseVectorStoreService();
