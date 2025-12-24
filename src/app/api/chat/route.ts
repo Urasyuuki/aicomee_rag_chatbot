@@ -10,11 +10,24 @@ export async function POST(req: NextRequest) {
   console.log("Chat API Hit");
   try {
     const supabase = await createClient();
-    const { data: { user } } = await supabase.auth.getUser();
+    let user = null;
 
-    if (!user) {
-         return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    // Check for local bypass cookie
+    const cookieHeader = req.headers.get('cookie') || '';
+    const isLocalBypass = process.env.NODE_ENV === 'development' && cookieHeader.includes('local-auth-bypass=true');
+
+    if (isLocalBypass) {
+         console.log("API Route: Local Auth Bypass Active");
+         user = { id: 'local-user-id', email: 'local@example.com' } as any;
+    } else {
+        const { data: { user: authUser }, error: authError } = await supabase.auth.getUser();
+        if (authError || !authUser) {
+             console.error("API Route: Auth Failed", authError);
+             return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+        }
+        user = authUser;
     }
+    console.log("API Route: User authenticated", user.id);
 
     const { message, conversationId, model = "auto" } = await req.json(); // Default to auto/cloud if not specified
     console.log(`Received: "${message.slice(0, 20)}...", ID: ${conversationId}, Model: ${model}`);
@@ -55,6 +68,7 @@ export async function POST(req: NextRequest) {
                 conversationId
             }
         });
+        console.log("API Route: User message saved.");
     }
     
     // 3. RAG Retrieval (Always try to get context, useful for both unless "chat-only" mode is requested)
@@ -246,7 +260,7 @@ ${context}`
     });
 
   } catch (error) {
-    console.error("Chat API Error:", error);
+    console.error("API Route: CRITICAL ERROR", error);
     const err = error as any;
     
     // Check for Gemini API Rate Limit (429) or Overloaded (503)

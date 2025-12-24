@@ -5,7 +5,19 @@ import { createClient } from "@/lib/supabase/server";
 export async function GET() {
   try {
     const supabase = await createClient();
-    const { data: { user } } = await supabase.auth.getUser();
+    
+    // Check for local bypass cookie
+    const cookieStore = await import('next/headers').then(mod => mod.cookies());
+    const isLocalBypass = process.env.NODE_ENV === 'development' && cookieStore.get('local-auth-bypass')?.value === 'true';
+
+    let user;
+    
+    if (isLocalBypass) {
+        user = { id: 'local-user-id' } as any;
+    } else {
+        const { data: { user: authUser } } = await supabase.auth.getUser();
+        user = authUser;
+    }
 
     if (!user) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });

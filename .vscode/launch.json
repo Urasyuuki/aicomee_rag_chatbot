@@ -1,0 +1,20 @@
+{
+  "version": "0.2.0",
+  "configurations": [
+    {
+      "name": "Next.js: debug",
+      "request": "launch",
+      "type": "node-terminal",
+      "command": "npm run dev",
+      "cwd": "${workspaceFolder}"
+    },
+    {
+      "name": "Chrome: Attach",
+      "type": "chrome",
+      "request": "attach",
+      "port": 9222,
+      "urlFilter": "http://localhost:3000/*",
+      "webRoot": "${workspaceFolder}"
+    }
+  ]
+}

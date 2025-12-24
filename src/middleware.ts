@@ -38,6 +38,11 @@ export async function middleware(request: NextRequest) {
     }
   )
 
+  // Bypass auth in development if special cookie is set
+  if (process.env.NODE_ENV === 'development' && request.cookies.get('local-auth-bypass')) {
+    return NextResponse.next()
+  }
+
   const {
     data: { user },
   } = await supabase.auth.getUser()

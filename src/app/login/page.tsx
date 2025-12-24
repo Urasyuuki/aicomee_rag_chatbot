@@ -23,6 +23,19 @@ export default function LoginPage() {
     setLoading(true)
 
     try {
+      // Local development bypass
+      if (
+        process.env.NODE_ENV === 'development' &&
+        email === 'local@example.com' &&
+        password === 'local123'
+      ) {
+        document.cookie = 'local-auth-bypass=true; path=/; max-age=3600'
+        toast.success('Local Dev Login (Bypass)')
+        router.refresh()
+        router.push('/')
+        return
+      }
+
       if (isSignUp) {
         const { error } = await supabase.auth.signUp({
           email,
