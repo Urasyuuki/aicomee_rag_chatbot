@@ -29,8 +29,8 @@ export async function POST(req: NextRequest) {
     }
     console.log("API Route: User authenticated", user.id);
 
-    const { message, conversationId, model = "auto" } = await req.json(); // Default to auto/cloud if not specified
-    console.log(`Received: "${message.slice(0, 20)}...", ID: ${conversationId}, Model: ${model}`);
+    const { message, conversationId, model = "auto", useRag = true } = await req.json(); // Default to auto/cloud if not specified, RAG defaults to true
+    console.log(`Received: "${message.slice(0, 20)}...", ID: ${conversationId}, Model: ${model}, RAG: ${useRag}`);
 
     // 1. Ensure Conversation Exists & Ownership
     if (conversationId) {
@@ -71,14 +71,28 @@ export async function POST(req: NextRequest) {
         console.log("API Route: User message saved.");
     }
     
-    // 3. RAG Retrieval (Always try to get context, useful for both unless "chat-only" mode is requested)
-    const relevantDocs: any[] = await vectorStore.similaritySearch(message, 3);
+    // 3. RAG Retrieval (Skipped if useRag is false)
     let context = "";
     let sources: string[] = [];
 
-    if (relevantDocs.length > 0) {
-       context = relevantDocs.map(d => d.text).join("\n\n");
-       sources = Array.from(new Set(relevantDocs.map(d => d.metadata?.source).filter(Boolean)));
+    if (useRag !== false) {
+        try {
+            console.log("API Route: Performing RAG search...");
+            const relevantDocs: any[] = await vectorStore.similaritySearch(message, 3);
+            
+            if (relevantDocs.length > 0) {
+               context = relevantDocs.map(d => d.text).join("\n\n");
+               sources = Array.from(new Set(relevantDocs.map(d => d.metadata?.source).filter(Boolean)));
+               console.log("Debug: RAG Context Found. Length:", context.length);
+            } else {
+                console.log("Debug: No RAG Context found.");
+            }
+        } catch (e) {
+            console.error("API Route: RAG Search Failed", e);
+            // Fallback to no context, don't crash
+        }
+    } else {
+        console.log("API Route: RAG Search Skipped (User Mode Selection)");
     }
 
     // 4. Fetch History

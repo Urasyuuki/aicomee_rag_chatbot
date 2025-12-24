@@ -17,6 +17,7 @@ export default function Home() {
   const [viewMode, setViewMode] = useState<"chat" | "knowledge">("chat");
   const [loading, setLoading] = useState(false);
   const [selectedModel, setSelectedModel] = useState<"cloud" | "local">("local"); // Default to Local
+  const [useRag, setUseRag] = useState(true); // Default to RAG ON
   const [userEmail, setUserEmail] = useState<string>("");
   
   const router = useRouter();
@@ -74,6 +75,7 @@ export default function Home() {
     const existingEmpty = conversations.find(c => c.messages.length === 0);
     if (existingEmpty) {
         setActiveId(existingEmpty.id);
+        setUseRag(true); // Reset to default on new chat
         return;
     }
 
@@ -81,6 +83,7 @@ export default function Home() {
     const newChat: Conversation = { id: newId, title: "New Chat", messages: [] };
     setConversations((prev) => [newChat, ...prev]); // Add to top
     setActiveId(newId);
+    setUseRag(true); // Reset to default on new chat
   };
 
   const handleSelectConversation = (id: string) => {
@@ -158,7 +161,8 @@ export default function Home() {
         body: JSON.stringify({ 
             message: content, 
             conversationId: activeId,
-            model: selectedModel // Send selected model
+            model: selectedModel, // Send selected model
+            useRag: useRag // Send RAG flag
         }),
       });
 
@@ -288,6 +292,8 @@ export default function Home() {
                 onSendMessage={handleSendMessage}
                 selectedModel={selectedModel}
                 onModelChange={setSelectedModel}
+                useRag={useRag}
+                onToggleRag={setUseRag}
             />
         ) : (
             <KnowledgeBase />

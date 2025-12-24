@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useRef, useEffect } from "react";
-import { Send, Sparkles, User, Pencil, ThumbsUp, ThumbsDown, Copy, FileText, ExternalLink } from "lucide-react";
+import { Send, Sparkles, User, Pencil, ThumbsUp, ThumbsDown, Copy, FileText, ExternalLink, Building } from "lucide-react";
 import ReactMarkdown from "react-markdown";
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
@@ -17,9 +17,11 @@ interface ChatInterfaceProps {
   onSendMessage: (message: string) => void;
   selectedModel: "cloud" | "local";
   onModelChange: (model: "cloud" | "local") => void;
+  useRag: boolean;
+  onToggleRag: (use: boolean) => void;
 }
 
-export default function ChatInterface({ messages, loading, onSendMessage, selectedModel, onModelChange }: ChatInterfaceProps) {
+export default function ChatInterface({ messages, loading, onSendMessage, selectedModel, onModelChange, useRag, onToggleRag }: ChatInterfaceProps) {
   const [input, setInput] = useState("");
   const [selectedSource, setSelectedSource] = useState<string | null>(null);
   const [sourceContent, setSourceContent] = useState<string | null>(null);
@@ -73,6 +75,46 @@ export default function ChatInterface({ messages, loading, onSendMessage, select
 
   return (
     <div className="flex flex-col h-screen w-full bg-background relative selection:bg-primary/20">
+
+      {/* Header Mode Switcher (Large & Visible) */}
+      <div className="flex-none p-4 border-b bg-white/50 backdrop-blur-sm z-20 flex justify-center">
+        <div className="bg-gray-100/80 p-1.5 rounded-2xl flex w-full max-w-xl shadow-inner">
+            <button
+                onClick={() => onToggleRag(true)}
+                className={cn(
+                    "flex-1 flex items-center justify-center gap-3 py-3 rounded-xl transition-all duration-300 font-bold text-sm sm:text-base",
+                    useRag 
+                        ? "bg-white text-amber-600 shadow-md ring-1 ring-black/5 scale-[1.02]" 
+                        : "text-gray-500 hover:text-gray-700 hover:bg-black/5"
+                )}
+            >
+                <div className={cn("p-2 rounded-full", useRag ? "bg-amber-100 text-amber-600" : "bg-transparent")}>
+                    <Building className="w-5 h-5" />
+                </div>
+                <div className="flex flex-col items-start leading-tight">
+                    <span>社内情報を参照</span>
+                    <span className="text-[10px] font-normal opacity-70 hidden sm:inline-block">マニュアル・規定から回答</span>
+                </div>
+            </button>
+            <button
+                onClick={() => onToggleRag(false)}
+                className={cn(
+                    "flex-1 flex items-center justify-center gap-3 py-3 rounded-xl transition-all duration-300 font-bold text-sm sm:text-base",
+                    !useRag 
+                        ? "bg-white text-pink-600 shadow-md ring-1 ring-black/5 scale-[1.02]" 
+                        : "text-gray-500 hover:text-gray-700 hover:bg-black/5"
+                )}
+            >
+                <div className={cn("p-2 rounded-full", !useRag ? "bg-pink-100 text-pink-600" : "bg-transparent")}>
+                    <Sparkles className="w-5 h-5" />
+                </div>
+                <div className="flex flex-col items-start leading-tight">
+                    <span>一般おしゃべり</span>
+                    <span className="text-[10px] font-normal opacity-70 hidden sm:inline-block">Web知識・日常会話</span>
+                </div>
+            </button>
+        </div>
+      </div>
       
       {/* Messages Area */}
       <ScrollArea className="flex-1">
@@ -128,9 +170,8 @@ export default function ChatInterface({ messages, loading, onSendMessage, select
                                     <button 
                                         key={i}
                                         onClick={() => {
+                                            if (!useRag) onToggleRag(true); // Auto-enable RAG for these
                                             setInput(q);
-                                            // Optional: Focus the input
-                                            // document.querySelector('input')?.focus(); 
                                         }}
                                         className="text-left p-3 rounded-xl bg-white border border-gray-200 hover:border-primary/50 hover:bg-primary/5 hover:text-primary transition-all text-sm font-medium text-gray-700 shadow-sm"
                                     >
@@ -276,10 +317,18 @@ export default function ChatInterface({ messages, loading, onSendMessage, select
       {/* Floating Input Area */}
       <div className="absolute bottom-6 left-0 right-0 px-6">
         <div className="max-w-3xl mx-auto">
-             <div className="relative flex items-center gap-2 p-2 bg-white rounded-full shadow-[0_8px_30px_rgb(0,0,0,0.08)] border border-gray-100">
+{/* RAG Switch Bar Removed */}
+
+             <div className={cn(
+                 "relative flex items-center gap-2 p-2 bg-white rounded-full shadow-[0_8px_30px_rgb(0,0,0,0.08)] border transition-colors",
+                 useRag ? "border-amber-100" : "border-gray-100"
+             )}>
                 <div className="pl-4 pr-2">
-                    <div className="h-8 w-8 rounded-full bg-pink-50 flex items-center justify-center text-pink-500">
-                        <Sparkles className="w-4 h-4" />
+                    <div className={cn(
+                        "h-8 w-8 rounded-full flex items-center justify-center transition-colors",
+                        useRag ? "bg-amber-50 text-amber-500" : "bg-pink-50 text-pink-500"
+                    )}>
+                        {useRag ? <Building className="w-4 h-4" /> : <Sparkles className="w-4 h-4" />}
                     </div>
                 </div>
                 
@@ -287,7 +336,7 @@ export default function ChatInterface({ messages, loading, onSendMessage, select
                     value={input}
                     onChange={(e) => setInput(e.target.value)}
                     onKeyDown={handleKeyDown}
-                    placeholder={`[${selectedModel === "cloud" ? "Cloud" : "Local"}] メッセージを入力...`}
+                    placeholder={`[${selectedModel === "cloud" ? "Cloud" : "Local"}] ${useRag ? "社内規定について質問..." : "おしゃべり..."}`}
                     className="flex-1 bg-transparent border-none outline-none text-gray-700 placeholder:text-gray-400 font-medium h-12"
                 />
                 
