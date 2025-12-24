@@ -115,7 +115,11 @@ export async function POST(req: NextRequest) {
     let shouldUseOllama = false;
 
     // Determine Mode
-    if (model === "local") {
+
+    // Check feature flag
+    const allowLocal = process.env.NEXT_PUBLIC_LOCAL_MODE === '1';
+
+    if (model === "local" && allowLocal) {
         shouldUseOllama = true;
     } else if (model === "cloud") {
         shouldUseOllama = false;

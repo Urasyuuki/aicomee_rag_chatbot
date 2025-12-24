@@ -11,7 +11,7 @@ function init() {
       throw new Error("GEMINI_API_KEY is not defined in environment variables.");
     }
     genAI = new GoogleGenerativeAI(apiKey);
-    model = genAI.getGenerativeModel({ model: "gemini-1.5-flash" });
+    model = genAI.getGenerativeModel({ model: "gemini-2.0-flash" });
     embeddingModel = genAI.getGenerativeModel({ model: "text-embedding-004" });
 }
 
@@ -28,7 +28,7 @@ export function getModel() {
 
 export async function describeImage(imageBuffer: Buffer, mimeType: string): Promise<string> {
     init();
-    const model = genAI.getGenerativeModel({ model: "gemini-1.5-flash" });
+    const model = genAI.getGenerativeModel({ model: "gemini-2.0-flash" });
     
     const prompt = "この画像の内容を詳細に日本語で説明してください。文字が含まれている場合は正確に書き起こしてください。マニュアルや文書の場合は、その要点とルールを日本語で要約してください。";
     
