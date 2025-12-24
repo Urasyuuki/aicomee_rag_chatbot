@@ -7,9 +7,9 @@ export default function AdminDashboard() {
   return (
     <div className="space-y-8">
       <div>
-        <h2 className="text-3xl font-bold tracking-tight">Dashboard</h2>
+        <h2 className="text-3xl font-bold tracking-tight">ダッシュボード</h2>
         <p className="text-muted-foreground">
-          Manage your AI chatbot settings and members here.
+          AIチャットボットの設定とメンバー管理を行います。
         </p>
       </div>
 
@@ -18,17 +18,17 @@ export default function AdminDashboard() {
             <Card className="hover:bg-gray-50 transition-colors cursor-pointer h-full">
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
                 <CardTitle className="text-sm font-medium">
-                Team Members
+                メンバー管理
                 </CardTitle>
                 <Users className="h-4 w-4 text-muted-foreground" />
             </CardHeader>
             <CardContent>
-                <div className="text-2xl font-bold">Manage Users</div>
+                <div className="text-2xl font-bold">ユーザー設定</div>
                 <p className="text-xs text-muted-foreground">
-                Add, remove, and manage access roles
+                アカウントの追加・削除・権限変更
                 </p>
                 <div className="mt-4 flex items-center text-sm text-primary font-medium">
-                    Go to Members <ArrowRight className="ml-1 w-4 h-4" />
+                    メンバー管理へ <ArrowRight className="ml-1 w-4 h-4" />
                 </div>
             </CardContent>
             </Card>
@@ -38,17 +38,17 @@ export default function AdminDashboard() {
             <Card className="hover:bg-gray-50 transition-colors cursor-pointer h-full">
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
                 <CardTitle className="text-sm font-medium">
-                RAG Documents
+                マニュアル管理
                 </CardTitle>
                 <FileText className="h-4 w-4 text-muted-foreground" />
             </CardHeader>
             <CardContent>
-                <div className="text-2xl font-bold">Knowledge Base</div>
+                <div className="text-2xl font-bold">ナレッジベース</div>
                 <p className="text-xs text-muted-foreground">
-                Upload manuals and manage vectors
+                RAG用マニュアルの登録・更新
                 </p>
                 <div className="mt-4 flex items-center text-sm text-primary font-medium">
-                    Go to Documents <ArrowRight className="ml-1 w-4 h-4" />
+                    マニュアル管理へ <ArrowRight className="ml-1 w-4 h-4" />
                 </div>
             </CardContent>
             </Card>

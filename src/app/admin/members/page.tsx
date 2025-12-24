@@ -29,7 +29,7 @@ export default function MembersPage() {
       const data = await res.json();
       setMembers(data.members);
     } catch (e) {
-      toast.error("Failed to load members");
+      toast.error("メンバー一覧の取得に失敗しました");
     } finally {
       setLoading(false);
     }
@@ -47,45 +47,45 @@ export default function MembersPage() {
         body: JSON.stringify({ email: newEmail, role: newRole }),
       });
       if (!res.ok) throw new Error("Failed");
-      toast.success("Member added");
+      toast.success("メンバーを追加しました");
       setNewEmail("");
       fetchMembers();
     } catch (e) {
-      toast.error("Failed to add member");
+      toast.error("メンバー追加に失敗しました");
     }
   };
 
   const handleDelete = async (id: string) => {
-    if (!confirm("Are you sure?")) return;
+    if (!confirm("本当に削除してもよろしいですか？")) return;
     try {
       const res = await fetch(`/api/admin/members?id=${id}`, {
         method: "DELETE",
       });
       if (!res.ok) throw new Error("Failed");
-      toast.success("Member removed");
+      toast.success("メンバーを削除しました");
       fetchMembers();
     } catch (e) {
-      toast.error("Failed to delete member");
+      toast.error("メンバー削除に失敗しました");
     }
   };
 
   return (
     <div className="space-y-6">
       <div className="flex justify-between items-center">
-        <h2 className="text-2xl font-bold tracking-tight">Members Management</h2>
+        <h2 className="text-2xl font-bold tracking-tight">メンバー管理</h2>
       </div>
 
       <div className="grid gap-6 md:grid-cols-[2fr_1fr]">
         <Card>
           <CardHeader>
-            <CardTitle>Allowed Users</CardTitle>
+            <CardTitle>登録済みユーザー一覧</CardTitle>
           </CardHeader>
           <CardContent>
             <div className="space-y-4">
               {loading ? (
-                <div className="p-4 text-center text-gray-500">Loading...</div>
+                <div className="p-4 text-center text-gray-500">読み込み中...</div>
               ) : members.length === 0 ? (
-                <div className="p-4 text-center text-gray-500">No members found</div>
+                <div className="p-4 text-center text-gray-500">登録メンバーはいません</div>
               ) : (
                 members.map((member) => (
                   <div key={member.id} className="flex items-center justify-between p-3 border rounded-lg hover:bg-gray-50">
@@ -97,7 +97,7 @@ export default function MembersPage() {
                         <div className="font-medium text-sm">{member.email}</div>
                         <div className="text-xs text-gray-500 flex items-center gap-1">
                           {member.role === 'ADMIN' && <Shield className="w-3 h-3 text-amber-500" />}
-                          {member.role}
+                          {member.role === 'ADMIN' ? '管理者' : '一般ユーザー'}
                         </div>
                       </div>
                     </div>
@@ -113,11 +113,11 @@ export default function MembersPage() {
 
         <Card>
           <CardHeader>
-            <CardTitle>Add Member</CardTitle>
+            <CardTitle>新規メンバー追加</CardTitle>
           </CardHeader>
           <CardContent className="space-y-4">
             <div className="space-y-2">
-              <label className="text-sm font-medium">Email</label>
+              <label className="text-sm font-medium">メールアドレス</label>
               <Input 
                 value={newEmail} 
                 onChange={(e) => setNewEmail(e.target.value)} 
@@ -125,19 +125,19 @@ export default function MembersPage() {
               />
             </div>
             <div className="space-y-2">
-              <label className="text-sm font-medium">Role</label>
+              <label className="text-sm font-medium">権限</label>
               <select 
                 value={newRole} 
                 onChange={(e) => setNewRole(e.target.value as "ADMIN" | "USER")}
                 className="flex h-10 w-full items-center justify-between rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
               >
-                  <option value="USER">User</option>
-                  <option value="ADMIN">Admin</option>
+                  <option value="USER">一般ユーザー</option>
+                  <option value="ADMIN">管理者</option>
               </select>
             </div>
             <Button onClick={handleAdd} className="w-full gap-2">
               <UserPlus className="w-4 h-4" />
-              Add Member
+              追加する
             </Button>
           </CardContent>
         </Card>

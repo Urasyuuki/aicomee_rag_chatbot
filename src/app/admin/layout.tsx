@@ -24,7 +24,7 @@ export default async function AdminLayout({
         <div className="p-6 border-b border-gray-100">
           <h1 className="text-xl font-bold text-primary flex items-center gap-2">
             <LayoutDashboard className="w-6 h-6" />
-            Admin Panel
+            管理パネル
           </h1>
         </div>
         
@@ -32,13 +32,13 @@ export default async function AdminLayout({
           <Link href="/admin/members">
             <Button variant="ghost" className="w-full justify-start gap-3">
               <Users className="w-4 h-4" />
-              Members
+              メンバー管理
             </Button>
           </Link>
           <Link href="/admin/documents">
             <Button variant="ghost" className="w-full justify-start gap-3">
               <FileText className="w-4 h-4" />
-              Documents
+              マニュアル管理
             </Button>
           </Link>
         </nav>
@@ -47,7 +47,7 @@ export default async function AdminLayout({
            <Link href="/">
             <Button variant="outline" className="w-full justify-start gap-3 text-gray-600">
               <LogOut className="w-4 h-4" />
-              Back to Chat
+              チャットに戻る
             </Button>
           </Link>
         </div>
