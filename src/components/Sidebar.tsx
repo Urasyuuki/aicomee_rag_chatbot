@@ -19,6 +19,7 @@ import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { cn } from "@/lib/utils";
 import { useTheme } from "next-themes";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogTrigger } from "@/components/ui/dialog";
+import Link from "next/link";
 
 import { Message } from "@/types";
 
@@ -30,7 +31,9 @@ interface SidebarProps {
     onDeleteConversation: (id: string, e: React.MouseEvent) => void;
     onRenameConversation: (id: string, newTitle: string) => void;
     onOpenKnowledgeBase: () => void;
+
     onClearConversations: () => void;
+    isAdminUser?: boolean;
 }
 
 export default function Sidebar({ 
@@ -43,6 +46,7 @@ export default function Sidebar({
     onOpenKnowledgeBase,
     onClearConversations,
     userEmail = "guest@example.com",
+    isAdminUser = false,
     onSignOut
 }: SidebarProps & { userEmail?: string; onSignOut?: () => void }) {
   const [editingId, setEditingId] = useState<string | null>(null);
@@ -158,18 +162,22 @@ export default function Sidebar({
                   ))}
               </div>
               
-              {/* Upload Area styled as a menu item */}
-              <div className="mt-6 px-1">
-                  <div className="text-xs font-medium text-gray-400 mb-2">管理者メニュー</div>
-                  <button 
-                    onClick={onOpenKnowledgeBase}
-                    className={cn(
-                      "w-full flex items-center gap-3 px-4 py-3 rounded-2xl text-sm transition-all duration-200 cursor-pointer border border-dashed border-gray-200 hover:border-primary/50 hover:bg-primary/5 text-gray-600"
-                  )}>
-                      <Database className="w-4 h-4 text-gray-400"/>
-                      <span>マニュアル管理</span>
-                  </button>
-              </div>
+
+              {/* Upload Area styled as a menu item (Admin Only) */}
+              {isAdminUser && (
+                  <div className="mt-6 px-1">
+                      <div className="text-xs font-medium text-gray-400 mb-2">管理者メニュー</div>
+                      <Link href="/admin">
+                        <button 
+                            className={cn(
+                            "w-full flex items-center gap-3 px-4 py-3 rounded-2xl text-sm transition-all duration-200 cursor-pointer border border-dashed border-gray-200 hover:border-primary/50 hover:bg-primary/5 text-gray-600"
+                        )}>
+                            <Database className="w-4 h-4 text-gray-400"/>
+                            <span>管理画面へ</span>
+                        </button>
+                      </Link>
+                  </div>
+              )}
   
           </ScrollArea>
   

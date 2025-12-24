@@ -16,9 +16,11 @@ export default function Home() {
   const [activeId, setActiveId] = useState("1");
   const [viewMode, setViewMode] = useState<"chat" | "knowledge">("chat");
   const [loading, setLoading] = useState(false);
+
   const [selectedModel, setSelectedModel] = useState<"cloud" | "local">("local"); // Default to Local
   const [useRag, setUseRag] = useState(true); // Default to RAG ON
   const [userEmail, setUserEmail] = useState<string>("");
+  const [isAdminUser, setIsAdminUser] = useState(false);
   
   const router = useRouter();
   const supabase = createClient();
@@ -27,11 +29,19 @@ export default function Home() {
   const activeConversation = conversations.find((c) => c.id === activeId) || conversations[0];
 
   useEffect(() => {
-    // Fetch User
+    // Fetch User & Role
     const getUser = async () => {
         const { data: { user } } = await supabase.auth.getUser();
         if (user) {
             setUserEmail(user.email || "");
+            const { data } = await supabase
+                .from('AllowedUser')
+                .select('role')
+                .eq('email', user.email)
+                .single();
+            if (data && data.role === 'ADMIN') {
+                setIsAdminUser(true);
+            }
         }
     };
     getUser();

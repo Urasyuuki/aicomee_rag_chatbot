@@ -1,5 +1,5 @@
 generator client {
-  provider = "prisma-client-js"
+  provider      = "prisma-client-js"
   binaryTargets = ["native", "rhel-openssl-3.0.x"]
 }
 
@@ -11,26 +11,48 @@ datasource db {
 model Conversation {
   id        String    @id @default(uuid())
   title     String
-  messages  Message[]
   createdAt DateTime  @default(now())
   updatedAt DateTime  @updatedAt
-  userId    String    @default("guest") // Temporary default for migration, should be required later
+  userId    String    @default("guest")
+  messages  Message[]
 
   @@index([userId])
 }
 
 model Message {
   id             String       @id @default(uuid())
-  role           String       // "user" | "model"
+  role           String
   content        String
   conversationId String
-  conversation   Conversation @relation(fields: [conversationId], references: [id], onDelete: Cascade)
   createdAt      DateTime     @default(now())
+  conversation   Conversation @relation(fields: [conversationId], references: [id], onDelete: Cascade)
 }
 
 model Document {
   id        String   @id @default(uuid())
-  name      String   // Filename
-  source    String   // Identifier/Source
+  name      String
+  source    String
   createdAt DateTime @default(now())
+}
+
+
+enum Role {
+  USER
+  ADMIN
+}
+
+model AllowedUser {
+  id        String   @id @default(uuid())
+  email     String   @unique
+  role      Role     @default(USER)
+  isActive  Boolean  @default(true)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+model document_chunks {
+  id        BigInt                 @id @default(autoincrement())
+  content   String?
+  metadata  Json?
+  embedding Unsupported("vector")?
 }

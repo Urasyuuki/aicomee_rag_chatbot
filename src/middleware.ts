@@ -55,6 +55,51 @@ export async function middleware(request: NextRequest) {
      return NextResponse.redirect(loginUrl)
   }
 
+  // Allow-list Check (Only for authenticated users)
+  if (user) {
+    // Import check function dynamically or inline logic to avoid dependency issues in Edge if complex
+    // Simple direct query here to keep middleware self-contained often better, 
+    // but we can try importing the helper.
+    // Note: We reuse the supabase client created above.
+
+    // 1. Check if user is allowed (query AllowedUser table)
+    const { data: allowedUser, error } = await supabase
+        .from('AllowedUser')
+        .select('role, isActive')
+        .eq('email', user.email)
+        .single();
+    
+    const isAllowed = allowedUser && allowedUser.isActive;
+    const isUnauthorizedPage = request.nextUrl.pathname === '/unauthorized';
+
+    if (!isAllowed) {
+        if (!isUnauthorizedPage) {
+            // Redirect unallowed users to unauthorized page
+            const url = request.nextUrl.clone()
+            url.pathname = '/unauthorized'
+            return NextResponse.redirect(url)
+        }
+    } else {
+        // User IS allowed
+        if (isUnauthorizedPage) {
+            // Redirect allowed users away from unauthorized page
+            const url = request.nextUrl.clone()
+            url.pathname = '/'
+            return NextResponse.redirect(url)
+        }
+        
+        // Admin Route Check
+        if (request.nextUrl.pathname.startsWith('/admin')) {
+             if (allowedUser.role !== 'ADMIN') {
+                 // Non-admin trying to access admin
+                 const url = request.nextUrl.clone()
+                 url.pathname = '/' // or unauthorized
+                 return NextResponse.redirect(url)
+             }
+        }
+    }
+  }
+
   // Redirect to home if logged in and trying to access login
   if (user && request.nextUrl.pathname.startsWith('/login')) {
       const homeUrl = request.nextUrl.clone()
