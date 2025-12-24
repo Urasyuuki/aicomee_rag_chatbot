@@ -3,12 +3,7 @@ import { createClient } from '@/lib/supabase/server';
 import { isAdmin, getCurrentUser } from '@/lib/auth';
 import { vectorStore } from '@/lib/vector-store';
 import { PrismaClient } from '@prisma/client';
-// @ts-ignore
-import * as pdfLib from 'pdf-parse';
-
-// Handle potential default export wrapping
-// @ts-ignore
-const pdf = pdfLib.default || pdfLib;
+import { WebPDFLoader } from "@langchain/community/document_loaders/web/pdf";
 
 const prisma = new PrismaClient();
 
@@ -28,14 +23,20 @@ export async function POST(req: NextRequest) {
             return NextResponse.json({ error: 'File is required' }, { status: 400 });
         }
 
-        const buffer = Buffer.from(await file.arrayBuffer());
         let content = '';
 
         if (file.type === 'application/pdf') {
-            const data = await pdf(buffer);
-            content = data.text;
+            try {
+                const loader = new WebPDFLoader(file);
+                const docs = await loader.load();
+                content = docs.map(d => d.pageContent).join('\n\n');
+            } catch (pdfError) {
+                console.error("PDF Parsing Error:", pdfError);
+                return NextResponse.json({ error: 'Failed to parse PDF' }, { status: 400 });
+            }
         } else {
             // Assume text/plain or markdown
+            const buffer = Buffer.from(await file.arrayBuffer());
             content = buffer.toString('utf-8');
         }
 
